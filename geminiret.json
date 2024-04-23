@@ -1,0 +1,18 @@
+{candidates=[
+        {finishReason=STOP, content={parts=[
+                    {text=Dungeons and Dragons Folder
+                    }
+                ], role=model
+            }, index=0.0, safetyRatings=[
+                {category=HARM_CATEGORY_SEXUALLY_EXPLICIT, probability=NEGLIGIBLE
+                },
+                {probability=NEGLIGIBLE, category=HARM_CATEGORY_HATE_SPEECH
+                },
+                {category=HARM_CATEGORY_HARASSMENT, probability=NEGLIGIBLE
+                },
+                {category=HARM_CATEGORY_DANGEROUS_CONTENT, probability=NEGLIGIBLE
+                }
+            ]
+        }
+    ]
+}

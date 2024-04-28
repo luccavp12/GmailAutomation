@@ -47,7 +47,9 @@ function getChildFolderString(attachmentFolder) {
 function getPDFExtractedText(file, parentFolderId) {
   // Check if the file is a PDF
   if (file.getMimeType() !== MimeType.PDF) {
-    throw new Error("This function only supports PDF files.");
+    Logger.log("This functino only supports PDF files.")
+    return -1
+    // throw new Error("This function only supports PDF files.");
   }
 
   const {id, name} = Drive.Files.create(
@@ -89,11 +91,11 @@ function setThreadLabel(thread) {
 
 function buildAddOn(e) {
   // Activate temporary Gmail add-on scopes.
-  var accessToken = e.messageMetadata.accessToken;
-  GmailApp.setCurrentMessageAccessToken(accessToken);
+  // var accessToken = e.messageMetadata.accessToken;
+  // GmailApp.setCurrentMessageAccessToken(accessToken);
 
-  var messageId = e.messageMetadata.messageId;
-  var message = GmailApp.getMessageById(messageId);
+  // var messageId = e.messageMetadata.messageId;
+  // var message = GmailApp.getMessageById(messageId);
 
   var cards = [];
 
@@ -162,6 +164,10 @@ function buildAddOn(e) {
 
         // If the attachment is a PDF, get the text content
         textContent = getPDFExtractedText(file, attachmentFolder.getId());
+
+        if (textContent == -1) {
+          continue;
+        }
 
         // Gemini Call for the correct folder the invoice should go in
         const data = geminiCall(sender, subject, body, textContent, folderString);

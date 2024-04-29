@@ -1,5 +1,4 @@
 function geminiCall(sender, subject, body, textContent, folderString) {
-  // Gemini API Key: AIzaSyAgd0MBjazXBcKb2Yx5vk6uD-9NFKjm2XM
   var apiKey = 'YOUR_API_KEY';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 

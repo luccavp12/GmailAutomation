@@ -1,5 +1,6 @@
 function geminiCall(sender, subject, body, textContent, folderString) {
-  var apiKey = 'YOUR_API_KEY_HERE';
+  // Gemini API Key: AIzaSyAgd0MBjazXBcKb2Yx5vk6uD-9NFKjm2XM
+  var apiKey = 'YOUR_API_KEY';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
   // Payload for my api call that will prompt Gemini to decide out of 
@@ -47,7 +48,7 @@ function getChildFolderString(attachmentFolder) {
 function getPDFExtractedText(file, parentFolderId) {
   // Check if the file is a PDF
   if (file.getMimeType() !== MimeType.PDF) {
-    Logger.log("This functino only supports PDF files.")
+    Logger.log("This function only supports PDF files.")
     return -1
     // throw new Error("This function only supports PDF files.");
   }
@@ -61,7 +62,8 @@ function getPDFExtractedText(file, parentFolderId) {
     file.getBlob(),
     {
       ocrLanguage: "en",
-      fields: 'id,name'
+      fields: 'id,name',
+      supportsAllDrives: true
     }
   );
 
@@ -70,8 +72,6 @@ function getPDFExtractedText(file, parentFolderId) {
   // Delete the temporary Google Document since it is no longer needed
   DriveApp.getFileById(id).setTrashed(true);
   
-  // Logger.log(textContent);
-
   return textContent;
 }
 
@@ -86,6 +86,14 @@ function setThreadLabel(thread) {
     thread.removeLabel(sendToDriveLabel);
 
     return thread
+}
+
+function formatDate(date) {
+  const year = date.getFullYear().toString();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return year + " " + month + " " + day;
 }
 
 
@@ -141,6 +149,11 @@ function buildAddOn(e) {
 
     // Go through all messages
     for (const message of messages) {
+      // // If message is not starred, continue
+      // if (!message.isStarred()) {
+      //   continue;
+      // }
+
       var sender = message.getFrom();
       // Logger.log(sender);
       
@@ -150,8 +163,15 @@ function buildAddOn(e) {
       var body = message.getBody();
       // Logger.log(body);
 
+      var date = message.getDate();          
+      const formattedDate = formatDate(date);
+      Logger.log(formattedDate); // Output: YYYYMMDD (e.g., 20240429 for today)
+
+      Logger.log(date);
+
       // Go through attachments and decide where to put them
       var attachments = message.getAttachments();
+      
       for (const attachment of attachments) {
         Logger.log("Attachment Name:");
         Logger.log(attachment.getName());
@@ -160,12 +180,15 @@ function buildAddOn(e) {
         
         // Add each attachment to general Drive folder
         // Upload the pdf to Drive
-        const file = attachmentFolder.createFile(attachment);
+        // Add in the customer default file name in ticket
+        const file = attachmentFolder.createFile(attachment).setName(formattedDate);
 
         // If the attachment is a PDF, get the text content
         textContent = getPDFExtractedText(file, attachmentFolder.getId());
 
+        // If there is no pdf, then delete the file and move on
         if (textContent == -1) {
+          file.setTrashed(true);
           continue;
         }
 
@@ -186,6 +209,10 @@ function buildAddOn(e) {
 
         file.moveTo(predictedFolder)
       }
+
+      // For some reason this doesn't work
+      // message.unstar();
+      // message.refresh();
 
       const card = CardService.newCardBuilder()
           .setName("Card name")

@@ -112,38 +112,29 @@ function buildAddOn(e) {
   var sentToDriveLabel = GmailApp.getUserLabelByName("SentToDrive");
 
   // Get the root folder that contains all of the organized folders and attachment uploads
-  // Ex:
-  //    GmailProcessor/ // This is the root folder
-  //        PsailaElectric/
-  //            invoice3.pdf
-  //        KauaiSoap/
-  //            invoice4.pdf
   var attachmentFolder = DriveApp.getFoldersByName('GmailProcessor-Tests').next();
   Logger.log("Attachment Folder:");
   Logger.log(attachmentFolder);
 
   // folderString will be a String return type of a comma serpated list of all of the children folders
-  // In the above example, it would be "PsailaElectric, KauaiSoap"
   // We will use this string for our input into Gemini/GenAI
   const folderResult = getChildFolderString(attachmentFolder);
-
   const folderString = folderResult[0]
   const idArray = folderResult[1]
   Logger.log("IdArray:");
   Logger.log(idArray);
-
 
   // Look for any email threads that have been labeled by user
   const threads = GmailApp.search('label:"SendToDrive"');
   Logger.log("Threads:")
   Logger.log(threads);
   
-
   // Go through threads
   for (const thread of threads) {
     // Get emails in the threads
     const messages = thread.getMessages()
-
+  
+    // Create a new card section for displaying
     const cardSection = CardService.newCardSection();
 
     // Go through all messages
@@ -162,11 +153,10 @@ function buildAddOn(e) {
       var body = message.getBody();
       // Logger.log(body);
 
+      // Output: YYYYMMDD (e.g., 20240429 for today)
       var date = message.getDate();          
       const formattedDate = formatDate(date);
-      Logger.log(formattedDate); // Output: YYYYMMDD (e.g., 20240429 for today)
-
-      Logger.log(date);
+      Logger.log(formattedDate);
 
       // Go through attachments and decide where to put them
       var attachments = message.getAttachments();
@@ -177,15 +167,13 @@ function buildAddOn(e) {
         cardSection.addWidget(
           CardService.newTextParagraph().setText("<b>" + attachment.getName() + "</b>"));
         
-        // Add each attachment to general Drive folder
-        // Upload the pdf to Drive
-        // Add in the customer default file name in ticket
+        // Add each attachment to root Drive folder
         const file = attachmentFolder.createFile(attachment).setName(formattedDate);
 
-        // If the attachment is a PDF, get the text content
+        // Get the text content
         textContent = getPDFExtractedText(file, attachmentFolder.getId());
 
-        // If there is no pdf, then delete the file and move on
+        // If the file was not a pdf, then delete the file and move on
         if (textContent == -1) {
           file.setTrashed(true);
           continue;
@@ -194,10 +182,10 @@ function buildAddOn(e) {
         // Gemini Call for the correct folder the invoice should go in
         const data = geminiCall(sender, subject, body, textContent, folderString);
 
+        // Results
         Logger.log("Predicted folder index:");
         const predictedFolderIndex = data.candidates[0].content.parts[0].text;
         Logger.log(predictedFolderIndex);
-
         Logger.log("Predicted folder ID:")
         Logger.log(idArray[predictedFolderIndex]);
 
@@ -213,6 +201,8 @@ function buildAddOn(e) {
       // message.unstar();
       // message.refresh();
 
+
+      // Add the cards to the display
       const card = CardService.newCardBuilder()
           .setName("Card name")
           .setHeader(CardService.newCardHeader().setTitle("Discovered Attachments:"))
@@ -221,11 +211,8 @@ function buildAddOn(e) {
       
       cards.push(card);
     }
-
     thread.addLabel(sentToDriveLabel);
     thread.removeLabel(sendToDriveLabel);
-    
   }  
-
   return cards;
 }

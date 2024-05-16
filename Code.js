@@ -7,7 +7,7 @@ function geminiCall(sender, subject, body, textContent, folderString) {
   const payload = {
     contents: [{
       parts: [{
-        text: "**Email:**\n" + "Sender: " + sender + "\nSubject: " + subject + "\n\nEmail Message:\n" + body + "\n\nAttachment:\n" + textContent + "\n\nAbove is an email sent by one of my customers, it includes their email, subject of the message, the message, and the attachment to the email. I have my Google Drive setup, and in my Drive are folders. Each folder is dedicated to one of my customers. I need your help deciding which folder this email should go into. Which of the following folders would you organize this email into?\n" + folderString + "\nThe only thing you will return is the 0-index of the folder in the list of folders provided to you. For example, if you think the text should go in the first folder name in the list above, then you would return 0, if it was the second folder, you would return 1, and so on. If you are not 100% certain that there is a folder that you would like to place this text in, return NO_AVAILABLE_FOLDER. After you decided the folder, get the invoice number and invoice date. The invoice number will be a string of numbers and letters, if you are not 100% certain there is an invoice number, return NO_AVAILABLE_INVOICE_NUMBER. The invoice date can potentially be in different formats. You will be returning these 3 pieces of information in a JSON format. The first object should be the 0-index of the folder, then the second object is the invoice number, and the third object is the invoice date. The invoice date should be formatted as YYYYMMDD. Here is an example output: {\"index\": 0, \"invoice_number\": \"123456\", \"invoice_date\": \"20220429\"}"
+        text: "**Email:**\n" + "Sender: " + sender + "\nSubject: " + subject + "\n\nEmail Message:\n" + body + "\n\nAttachment:\n" + textContent + "\n\nAbove is an email sent by one of my customers, it includes their email, subject of the message, the message, and the attachment to the email. I have my Google Drive setup, and in my Drive are folders. Each folder is dedicated to one of my customers. I need your help deciding which folder this email should go into. Which of the following folders would you organize this email into?\n" + folderString + "\nThe only thing you will return is the 0-index of the folder in the list of folders provided to you. For example, if you think the text should go in the first folder name in the list above, then you would return 0, if it was the second folder, you would return 1, and so on. If you are not 100% certain that there is a folder that you would like to place this text in, choose the folder named NO_AVAILABLE_FOLDER to return. DO NOT make any assumptions, only choose a folder to use IF there is actual concrete evidence that it belongs in the folder. After you decided the folder, get the invoice number and invoice date. The invoice number will be a string of numbers and letters, if you are not 100% certain there is an invoice number, return NO_AVAILABLE_INVOICE_NUMBER. The invoice date can potentially be in different formats. There might be a date without a year, or the month and day will be written out in full english. If you cannot find an appropriate date, return NO_AVAILABLE_INVOICE_DATE. You will be returning these 3 pieces of information in a JSON format. The first object should be the 0-index of the folder, then the second object is the invoice number, and the third object is the invoice date. The invoice date should be formatted as YYYYMMDD. Here is an example output: {\"index\": 0, \"invoice_number\": \"123456\", \"invoice_date\": \"20220429\"}"
       }]
     }],
     // generationConfig: [{
@@ -57,7 +57,7 @@ function noAttachmentGeminiCall(textContent, folderString) {
   const payload = {
     contents: [{
       parts: [{
-        text: "**Email:**\n" + textContent + "\n\nAbove is an email thread between one of my customers and I, it includes my customer's email, subject of the message, the message, and dates the emails were sent. I have my Google Drive setup, and in my Drive are folders. Each folder is dedicated to one of my customer. I need your help deciding which folder this email thread should go into. Which of the following folders would you organize this email into?\n" + folderString + "\nThe only thing you will return is the 0-index of the folder in the list of folders provided to you. For example, if you think the text should go in the first folder name in the list above, then you would return 0, if it was the second folder, you would return 1, and so on. If you are not 100% certain that there is a folder that you would like to place this text in, return NO_AVAILABLE_FOLDER. After you decided the folder, get the invoice number and invoice date. The invoice number will be a string of numbers and letters, if you are not 100% certain there is an invoice number, return NO_AVAILABLE_INVOICE_NUMBER. The invoice date can potentially be in different formats. You will be returning these 3 pieces of information in a JSON format. The first object should be the 0-index of the folder, then the second object is the invoice number, and the third object is the invoice date. The invoice date should be formatted as YYYYMMDD. Here is an example output: {\"index\": 0, \"invoice_number\": \"123456\", \"invoice_date\": \"20220429\"}"
+        text: "**Email:**\n" + textContent + "\n\nAbove is an email thread between one of my customers and I, it includes my customer's email, subject of the message, the message, and dates the emails were sent. I have my Google Drive setup, and in my Drive are folders. Each folder is dedicated to one of my customer. I need your help deciding which folder this email thread should go into. Which of the following folders would you organize this email into?\n" + folderString + "\nThe only thing you will return is the 0-index of the folder in the list of folders provided to you. For example, if you think the text should go in the first folder name in the list above, then you would return 0, if it was the second folder, you would return 1, and so on. If you are not 100% certain that there is a folder that you would like to place this text in, choose the folder named NO_AVAILABLE_FOLDER to return. DO NOT make any assumptions, only choose a folder to use IF there is actual concrete evidence that it belongs in the folder. After you decided the folder, get the invoice number and invoice date. The invoice number will be a string of numbers and letters, if you are not 100% certain there is an invoice number, return NO_AVAILABLE_INVOICE_NUMBER. The invoice date can potentially be in different formats. There might be a date without a year, or the month and day will be written out in full english. If you cannot find an appropriate date, return NO_AVAILABLE_INVOICE_DATE. You will be returning these 3 pieces of information in a JSON format. The first object should be the 0-index of the folder, then the second object is the invoice number, and the third object is the invoice date. The invoice date should be formatted as YYYYMMDD. Here is an example output: {\"index\": 0, \"invoice_number\": \"123456\", \"invoice_date\": \"20220429\"}"
       }]
     }],
     // generationConfig: [{
@@ -99,18 +99,34 @@ function noAttachmentGeminiCall(textContent, folderString) {
 }
 
 function getChildFolderString(attachmentFolder) {
-  subFoldersIter = attachmentFolder.getFolders()
-  subFolders = []
-  idArray = []
-  while (subFoldersIter.hasNext()) {
-    var folder = subFoldersIter.next();
-    subFolders.push(folder.getName());
-    idArray.push(folder.getId());
+  var alphaFoldersIter = attachmentFolder.getFolders();
+
+  var subFolders = []
+  var idArray = []
+
+  while (alphaFoldersIter.hasNext()) {
+    var currAlphaFolder = alphaFoldersIter.next();
+
+    if (currAlphaFolder.getName() === "NO_AVAILABLE_FOLDER") {
+      continue;
+    }
+
+    // While we are in each alphabetized folder, we can begin to collect our vendor folders
+    var currAlphaFolderSubFolders = currAlphaFolder.getFolders();
+    while (currAlphaFolderSubFolders.hasNext()) {
+      var folder = currAlphaFolderSubFolders.next();
+      subFolders.push(folder.getName());
+      idArray.push(folder.getId());
+    }
   }
 
   folderString = subFolders.join(", ");
-  Logger.log(folderString);
 
+  Logger.log("Folder String:");
+  Logger.log(folderString);
+  Logger.log("ID Array:");
+  Logger.log(idArray);
+  
   return [folderString, idArray];
 }
 

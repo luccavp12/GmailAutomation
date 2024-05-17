@@ -7,7 +7,7 @@ function geminiCall(sender, subject, body, textContent, folderString) {
   const payload = {
     contents: [{
       parts: [{
-        text: "**Email:**\n" + "Sender: " + sender + "\nSubject: " + subject + "\n\nEmail Message:\n" + body + "\n\nAttachment:\n" + textContent + "\n\nAbove is an email sent by one of my customers, it includes their email, subject of the message, the message, and the attachment to the email. I have my Google Drive setup, and in my Drive are folders. Each folder is dedicated to one of my customers. I need your help deciding which folder this email should go into. Which of the following folders would you organize this email into?\n" + folderString + "\nThe only thing you will return is the 0-index of the folder in the list of folders provided to you. For example, if you think the text should go in the first folder name in the list above, then you would return 0, if it was the second folder, you would return 1, and so on. If you are not 100% certain that there is a folder that you would like to place this text in, choose the folder named NO_AVAILABLE_FOLDER to return. DO NOT make any assumptions, only choose a folder to use IF there is actual concrete evidence that it belongs in the folder. After you decided the folder, get the invoice number and invoice date. The invoice number will be a string of numbers and letters, if you are not 100% certain there is an invoice number, return NO_AVAILABLE_INVOICE_NUMBER. The invoice date can potentially be in different formats. There might be a date without a year, or the month and day will be written out in full english. If you cannot find an appropriate date, return NO_AVAILABLE_INVOICE_DATE. You will be returning these 3 pieces of information in a JSON format. The first object should be the 0-index of the folder, then the second object is the invoice number, and the third object is the invoice date. The invoice date should be formatted as YYYYMMDD. Here is an example output: {\"index\": 0, \"invoice_number\": \"123456\", \"invoice_date\": \"20220429\"}"
+        text: "**Email:**\n" + "Sender: " + sender + "\nSubject: " + subject + "\n\nEmail Message:\n" + body + "\n\nAttachment:\n" + textContent + "\n\nAbove is an email sent by one of my customers, it includes their email, subject of the message, the message, and the attachment to the email. I have my Google Drive setup, and in my Drive are folders. Each folder is dedicated to one of my customers. I need your help deciding which folder this email should go into. Which of the following folders would you organize this email into?\n" + folderString + "\nThe only thing you will return is the 0-index of the folder in the list of folders provided to you. For example, if you think the text should go in the first folder name in the list above, then you would return 0, if it was the second folder, you would return 1, and so on. If you are not 100% certain that there is a folder that you would like to place this text in, choose the folder named NO_AVAILABLE_FOLDER to return. DO NOT make any assumptions, only choose a folder to use IF there is actual concrete evidence that it belongs in the folder. After you decided the folder, get the invoice number and invoice date. The invoice number will be a string of numbers and letters, if you are not 100% certain there is an invoice number, return NO_AVAILABLE_INVOICE_NUMBER. The invoice date can potentially be in different formats. There might be a date without a year, or the month and day will be written out in full english. If you cannot find an appropriate date, return NO_AVAILABLE_INVOICE_DATE. You will be returning these 3 pieces of information in a JSON format. The first object should be the 0-index of the folder in the list of folders provided, then the second object is the invoice number, and the third object is the invoice date. The invoice date should be formatted as YYYYMMDD. Here is an example output: {\"index\": 0, \"invoice_number\": \"123456\", \"invoice_date\": \"20220429\"}"
       }]
     }],
     // generationConfig: [{
@@ -120,6 +120,15 @@ function getChildFolderString(attachmentFolder) {
     }
   }
 
+  // subFoldersIter = attachmentFolder.getFolders()
+  // subFolders = []
+  // idArray = []
+  // while (subFoldersIter.hasNext()) {
+  //   var folder = subFoldersIter.next();
+  //   subFolders.push(folder.getName());
+  //   idArray.push(folder.getId());
+  // }
+
   folderString = subFolders.join(", ");
 
   Logger.log("Folder String:");
@@ -209,8 +218,9 @@ function withAttachment(messages, cardSection, attachmentFolder, folderString, i
     for (const attachment of attachments) {
       Logger.log("Attachment Name:");
       Logger.log(attachment.getName());
-      cardSection.addWidget(
-        CardService.newTextParagraph().setText("<b>" + attachment.getName() + "</b>"));
+      // cardSection.addWidget(
+      //   CardService.newTextParagraph().setText("<b>" + attachment.getName() + "</b>"));
+      cardSection.push(sender + " " + subject + " " + attachment.getName());
       
       // Upload the attachment to the root folder
       const file = attachmentFolder.createFile(attachment);
@@ -275,13 +285,14 @@ function withAttachment(messages, cardSection, attachmentFolder, folderString, i
       file.setName(cleanJSONString["invoice_date"] + "_" + cleanJSONString["invoice_number"] + ".pdf");
     }
 
-    const card = CardService.newCardBuilder()
-        .setName("Card name")
-        .setHeader(CardService.newCardHeader().setTitle("Discovered Attachments:"))
-        .addSection(cardSection)
-        .build();
+    // const card = CardService.newCardBuilder()
+    //     .setName("Card name")
+    //     .setHeader(CardService.newCardHeader().setTitle("Discovered Attachments:"))
+    //     .addSection(cardSection)
+    //     .build();
     
-    cards.push(card);
+    // cards.push(card);
+    cards.push(cardSection);
   }
 }
 
@@ -356,11 +367,12 @@ function noAttachment(messages, cardSection, attachmentFolder, folderString, idA
 
     file.setName(cleanJSONString["invoice_date"] + "_" + cleanJSONString["invoice_number"] + ".pdf");
 
-    const card = CardService.newCardBuilder()
-        .setName("Card name")
-        .setHeader(CardService.newCardHeader().setTitle("Discovered Attachments:"))
-        .addSection(cardSection)
-        .build();
+    // const card = CardService.newCardBuilder()
+    //     .setName("Card name")
+    //     .setHeader(CardService.newCardHeader().setTitle("Discovered Attachments:"))
+    //     .addSection(cardSection)
+    //     .build();
+    cardSection.push(message.getFrom() + " " + message.getSubject());
     
     cards.push(card);
   }
@@ -399,7 +411,8 @@ function buildAddOn(e) {
     const messages = thread.getMessages()
 
     // Create a new card to display in add-on UI
-    const cardSection = CardService.newCardSection();
+    // const cardSection = CardService.newCardSection();
+    var cardSection = [];
 
     // Check if the thread has a pdf invoice
     const hasPDF = checkForPDF(messages);
@@ -418,5 +431,7 @@ function buildAddOn(e) {
     thread.removeLabel(sendToDriveLabel);   
   }  
 
+  Logger.log("Cards:");
+  Logger.log(cards[0]);
   return cards;
 }
